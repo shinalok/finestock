@@ -1,0 +1,2 @@
+class KisV():
+    pass
