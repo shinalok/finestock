@@ -7,7 +7,7 @@ import websockets
 import finestock
 from finestock.comm import API
 
-class EBest(API):
+class LS(API):
     def __init__(self):
         super().__init__()
         print("create Ebest Components")
@@ -207,7 +207,6 @@ class EBest(API):
             for hold in data:
                 holds.append(finestock.Hold(hold['expcode'], hold['hname'], hold['pamt'], hold['janqty'], hold['appamt']))
             return holds
-
     def do_order(self, code, buy_flag, price, qty):
         url = f"{self.DOMAIN}/{self.ORDER}"
         header = self.headers.copy()
