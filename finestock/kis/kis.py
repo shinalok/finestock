@@ -1,7 +1,6 @@
 import asyncio
 from datetime import datetime
 import json
-import requests
 import websockets
 import finestock
 from finestock.comm import API
@@ -30,21 +29,23 @@ class Kis(API):
             "appkey": self.app_key,
             "secretkey": self.app_secret
         }
-        response = requests.post(f"{self.DOMAIN}/oauth2/Approval", headers=header, data=json.dumps(data))
-        if response.status_code == 200:
-            res = response.json()
-            if "approval_key" in res:
-                self.approval_key = res['approval_key']
-            return res
-        else:
-            return response.json()
+        response = self._request("POST", f"{self.DOMAIN}/oauth2/Approval", headers=header, data=json.dumps(data), log_tag="Kis.approval")
+        res = self._json(response)
+        if response.status_code == 200 and "approval_key" in res:
+            self.approval_key = res['approval_key']
+        return res
 
     def get_price(self, code):
         today = datetime.now().strftime('%Y%m%d')
         res = self.get_ohlcv(code, frdate=today, todate=today)
         return res[0] if res else None
 
-    def get_ohlcv(self, code, frdate=datetime.now().strftime('%Y%m%d'), todate=datetime.now().strftime('%Y%m%d')):
+    def get_ohlcv(self, code, frdate=None, todate=None):
+        # 기본값을 datetime.now()로 즉시 평가해 함수 시그니처에 박아두면 모듈을
+        # import한 시점의 날짜로 영구히 고정되어버린다(파이썬 기본 인자는 함수
+        # 정의 시 단 한 번만 평가됨). 그래서 None을 받아 호출마다 평가한다.
+        frdate = frdate or datetime.now().strftime('%Y%m%d')
+        todate = todate or datetime.now().strftime('%Y%m%d')
         header = self.headers.copy()
         header["tr_id"] = "FHKST03010100"
         param = {
@@ -55,8 +56,8 @@ class Kis(API):
             "fid_period_div_code": "D", #D:일봉, W:주봉, M:월봉, Y:년봉,
             "fid_org_adj_prc": "0" #0:수정주가, 1: 원주가
         }
-        response = requests.get(f"{self.DOMAIN}/{self.CHART}", headers=header, params=param)
-        res = response.json()
+        response = self._request("GET", f"{self.DOMAIN}/{self.CHART}", headers=header, params=param, log_tag="Kis.get_ohlcv")
+        res = self._json(response)
 
         ohlcvs = []
         if res["rt_cd"] == "0":
@@ -72,7 +73,10 @@ class Kis(API):
         print("Kis get_ohlcv_min not supported yet")
         return []
 
-    def get_index(self, code, frdate=datetime.now().strftime('%Y%m%d'), todate=datetime.now().strftime('%Y%m%d')):
+    def get_index(self, code, frdate=None, todate=None):
+        # get_ohlcv와 동일한 이유로 None을 받아 호출마다 오늘 날짜를 평가한다.
+        frdate = frdate or datetime.now().strftime('%Y%m%d')
+        todate = todate or datetime.now().strftime('%Y%m%d')
         header = self.headers.copy()
         header["tr_id"] = "FHKUP03500100"
         param = {
@@ -83,8 +87,8 @@ class Kis(API):
             "fid_period_div_code": "D", #D:일봉, W:주봉, M:월봉, Y:년봉,
             "fid_org_adj_prc": "0" #0:수정주가, 1: 원주가
         }
-        response = requests.get(f"{self.DOMAIN}/{self.INDEX}", headers=header, params=param)
-        res = response.json()
+        response = self._request("GET", f"{self.DOMAIN}/{self.INDEX}", headers=header, params=param, log_tag="Kis.get_index")
+        res = self._json(response)
         ohlcvs = []
         if res["rt_cd"] == "0":
             data = res["output2"]
@@ -105,8 +109,8 @@ class Kis(API):
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": code
         }
-        response = requests.get(f"{self.DOMAIN}/{self.ORDERBOOK}", headers=header, params=param)
-        res = response.json()
+        response = self._request("GET", f"{self.DOMAIN}/{self.ORDERBOOK}", headers=header, params=param, log_tag="Kis.get_orderbook")
+        res = self._json(response)
 
         output1 = res['output1']
         sells = []
@@ -140,8 +144,8 @@ class Kis(API):
             "CTX_AREA_FK100": "",  # 연속조회검색조건100
             "CTX_AREA_NK100": ""  # 연속조회키100
         }
-        response = requests.get(f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param)
-        res = response.json()
+        response = self._request("GET", f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param, log_tag="Kis.get_balance")
+        res = self._json(response)
         print(res)
 
         hold = res["output1"]
@@ -163,7 +167,7 @@ class Kis(API):
     def do_order(self, code, buy_flag, price, qty):
         url = f"{self.DOMAIN}/{self.ORDER}"
         header = self.headers.copy()
-        header["tr_id"] = "TTTC0802U" if buy_flag == finestock.ORDER_FLAG.BUY else "TTTC0801U " #[실전]매수: TTTC0802U, 매도: TTTC0801U
+        header["tr_id"] = "TTTC0802U" if buy_flag == finestock.ORDER_FLAG.BUY else "TTTC0801U" #[실전]매수: TTTC0802U, 매도: TTTC0801U
         dvsn = "01" if price == 0 else "00" #00: 지정가, 01:시장가
 
         param = {
@@ -175,8 +179,8 @@ class Kis(API):
             "ORD_UNPR": str(price)  # 주문단가(01: 기본값)
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(param))
-        res = response.json()
+        response = self._request("POST", url, headers=header, data=json.dumps(param), log_tag="Kis.do_order")
+        res = self._json(response)
         print(res)
 
         if res['rt_cd'] == "0":

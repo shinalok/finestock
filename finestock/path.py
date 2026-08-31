@@ -77,7 +77,7 @@ _KIWOOM_V_ = {
 
 _NH_ = {
     "DOMAIN": "https://api.nhplug.com:8443",
-    "DOMAIN_WS": "wss://api.nhplug.com:7070",
+    "DOMAIN_WS": "wss://api.nhplug.com:7070/websocket",
     # 접근토큰발급(oauth2/token)은 모의투자 미제공 — 항상 운영 도메인에서만 발급.
     # NhV(모의투자)에서도 이 값은 바뀌지 않는다.
     "OAUTH_DOMAIN": "https://api.nhplug.com:8443",
@@ -94,7 +94,7 @@ _NH_ = {
 _NH_V_ = {
     **_NH_,
     "DOMAIN": "https://moapi.nhplug.com:8443",
-    "DOMAIN_WS": "wss://moapi.nhplug.com:17070",
+    "DOMAIN_WS": "wss://moapi.nhplug.com:17070/websocket",
 }
 
 _API_PATH_ = {

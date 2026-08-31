@@ -3,7 +3,6 @@ import datetime
 import asyncio
 import websockets
 import json
-import requests
 import finestock
 from websockets.exceptions import ConnectionClosedOK
 from finestock.comm.api import API
@@ -86,7 +85,7 @@ class Kiwoom(API):
         # logger.debug(f"[Kiwoom] Request Headers: {header}")
         # logger.debug(f"[Kiwoom] Request Body: {params}")
 
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         
         # logger.debug(f"[Kiwoom] Response Status: {response.status_code}")
         # logger.debug(f"[Kiwoom] Response Body: {response.text}")
@@ -145,7 +144,7 @@ class Kiwoom(API):
             "mrkt_tp": mrkt_tp
         }
         
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         
         if response.status_code == 200:
             try:
@@ -210,7 +209,7 @@ class Kiwoom(API):
             "mrkt_tp": mrkt_tp
         }
         
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         
         if response.status_code == 200:
             try:
@@ -342,7 +341,7 @@ class Kiwoom(API):
             "stk_cd": code
         }
         
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         
         if response.status_code == 200:
             try:
@@ -694,7 +693,7 @@ class Kiwoom(API):
             "cond_uv": ""
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         
         if response.status_code == 200:
             try:
@@ -730,7 +729,7 @@ class Kiwoom(API):
             "cncl_qty": str(qty)
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         
         if response.status_code == 200:
             try:
@@ -762,7 +761,7 @@ class Kiwoom(API):
             "qry_tp": "3" # 3: Estimated, 2: General
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         print(response.text)
         
         if response.status_code == 200:
@@ -810,7 +809,7 @@ class Kiwoom(API):
             "dmst_stex_tp": "KRX"
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(params))
+        response = self._request("POST", url, headers=header, data=json.dumps(params), log_tag="Kiwoom")
         
         if response.status_code == 200:
             try:

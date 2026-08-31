@@ -3,7 +3,6 @@ import json
 import time
 from datetime import datetime
 
-import requests
 import websockets
 from loguru import logger
 from websockets.exceptions import ConnectionClosedOK
@@ -56,17 +55,11 @@ class Nh(API):
             "grant_type": "client_credentials",
             "scope": "oob",
         }
-        response = requests.post(url, headers=header, data=data)
+        response = self._request("POST", url, headers=header, data=data, log_tag="Nh.oauth")
         try:
             res = response.json()
-        except Exception:
+        except ValueError:
             res = response.text
-
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {data}]\n"
-                     f"[response: {res}]")
 
         if response.status_code == 200 and isinstance(res, dict) and "access_token" in res:
             self.set_access_token(res['access_token'])
@@ -90,14 +83,9 @@ class Nh(API):
         if extra_headers:
             header.update(extra_headers)
         body = {"Input_0": input_0}
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="Nh")
+        res = self._json(response)
         self._last_response = response  # 연속조회(cts/cts_flag)는 body가 아니라 응답 헤더로 내려온다
-        logger.debug(f"[API: nh]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
         return res
 
     # ------------------------------------------------------------------
@@ -348,12 +336,25 @@ class Nh(API):
                 if not body:
                     continue
 
+                if 'rsp_cd' in header:
+                    # 구독/해제 등록 시 서버가 먼저 보내는 ack — {"tr_key": [code]}뿐인
+                    # 실데이터 아닌 body라 파싱 대상이 아니다(공식 스펙 문서에는 이 ack
+                    # 메시지가 나와 있지 않아 실제 응답을 보고서야 확인했다).
+                    logger.debug(f"Nh WS ack (tr_cd={header.get('tr_cd')}): {header.get('rsp_msg')}")
+                    continue
+
                 tr_cd = header.get('tr_cd')
                 code = header.get('tr_key', '')
-                if tr_cd in ("oc", "mc", "nc"):
-                    self.add_data(self._parse_price(code, body))
-                elif tr_cd in ("ob", "mb", "nb"):
-                    self.add_data(self._parse_orderbook(code, body))
+                try:
+                    if tr_cd in ("oc", "mc", "nc"):
+                        self.add_data(self._parse_price(code, body))
+                    elif tr_cd in ("ob", "mb", "nb"):
+                        self.add_data(self._parse_orderbook(code, body))
+                except Exception as parse_err:
+                    # ack 이외의 사유(스펙과 실제 응답의 필드명 불일치 등)로 파싱이
+                    # 실패해도 세션 전체를 끊지 않고 원본 페이로드를 남겨 원인 파악이
+                    # 가능하게 한다.
+                    logger.error(f"Nh WS parse error (tr_cd={tr_cd}): {parse_err} | raw={res}")
             except asyncio.TimeoutError:
                 pass
             except ConnectionClosedOK as e:

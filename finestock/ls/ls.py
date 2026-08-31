@@ -4,7 +4,6 @@ import json
 import time
 
 from loguru import logger
-import requests
 import websockets
 from websockets.exceptions import ConnectionClosedOK
 
@@ -63,13 +62,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             ohlcvs = []
@@ -112,13 +106,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             today = datetime.date.today()
@@ -158,13 +147,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             ohlcvs = []
@@ -204,14 +188,8 @@ class LS(API):
                 "sujung": "Y"
             }
         }
-        response = requests.post(url, headers=header, data=json.dumps(body))
-
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             ohlcvs = []
@@ -254,14 +232,8 @@ class LS(API):
                 "comp_yn": "N"
             }
         }
-        response = requests.post(url, headers=header, data=json.dumps(body))
-
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             ohlcvs = []
@@ -290,13 +262,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
     def get_stock_list(self):
         url = f"{self.DOMAIN}/{self.STOCK_LIST}"
@@ -309,12 +276,12 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
         '''
         logger.debug(f"[API: oauth]\n"
                      f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
+                     f"[header: {self._redact(header)}]\n"
                      f"[param: {body}]\n"
                      f"[response: {res}]")        
         '''
@@ -343,12 +310,12 @@ class LS(API):
                 "cts": "1",
             }
         }
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
         '''
         logger.debug(f"[API: oauth]\n"
                      f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
+                     f"[header: {self._redact(header)}]\n"
                      f"[param: {body}]\n"
                      f"[response: {res}]")        
         '''
@@ -371,12 +338,12 @@ class LS(API):
                 "cont_key": "",
             }
         }
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         logger.debug(f"[API: oauth]\n"
                      f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
+                     f"[header: {self._redact(header)}]\n"
                      f"[param: {body}]\n"
                      f"[response: {res}]")        
 
@@ -398,13 +365,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             return res['t1859OutBlock1']
@@ -448,13 +410,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             data = res['t1101OutBlock']
@@ -484,13 +441,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00136":
             data1 = res['CSPAQ12200OutBlock1']
@@ -518,13 +470,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             data = res['t0424OutBlock1']
@@ -553,13 +500,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] in ("00040", "00039"):
             data1 = res['CSPAT00601OutBlock1']
@@ -581,13 +523,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00000":
             data1 = res['t0425OutBlock']
@@ -628,13 +565,8 @@ class LS(API):
             }
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(body))
-        res = response.json()
-        logger.debug(f"[API: oauth]\n"
-                     f"[URL: {url}]\n"
-                     f"[header: {header}]\n"
-                     f"[param: {body}]\n"
-                     f"[response: {res}]")
+        response = self._request("POST", url, headers=header, data=json.dumps(body), log_tag="LS")
+        res = self._json(response)
 
         if res['rsp_cd'] == "00156":
             data1 = res['CSPAT00801OutBlock1']

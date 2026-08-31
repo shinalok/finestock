@@ -1,5 +1,4 @@
 import json
-import requests
 import finestock
 from finestock.kis import Kis
 
@@ -27,8 +26,8 @@ class KisV(Kis):
             "CTX_AREA_NK100": ""  # 연속조회키100
         }
         print(header)
-        response = requests.get(f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param)
-        res = response.json()
+        response = self._request("GET", f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param, log_tag="KisV.get_balance")
+        res = self._json(response)
         print(res)
 
         hold = res["output1"]
@@ -58,8 +57,8 @@ class KisV(Kis):
             "ORD_UNPR": str(price)  # 주문단가(01: 기본값)
         }
 
-        response = requests.post(url, headers=header, data=json.dumps(param))
-        res = response.json()
+        response = self._request("POST", url, headers=header, data=json.dumps(param), log_tag="KisV.do_order")
+        res = self._json(response)
         print(res)
 
         if res['rt_cd'] == "0":
