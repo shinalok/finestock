@@ -8,6 +8,8 @@ class APIProvider(Enum):
     KISV = "KISV"
     KIWOOM = "KIWOOM"
     KIWOOMV = "KIWOOMV"
+    NH = "NH"
+    NHV = "NHV"
 
 class APIFactory:
     @staticmethod
@@ -33,5 +35,11 @@ class APIFactory:
         elif api_provider == APIProvider.KIWOOMV:
              from .kiwoom import KiwoomV
              return KiwoomV()
+        elif api_provider == APIProvider.NH:
+            from .nh import Nh
+            return Nh()
+        elif api_provider == APIProvider.NHV:
+            from .nh import NhV
+            return NhV()
         else:
             raise ValueError("Unsupported API provider")

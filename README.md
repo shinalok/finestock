@@ -6,10 +6,11 @@ Created by alshin
 
 ## Table of Contents
 1. [설치](#설치)
-2. [아키텍처](#아키텍처)
-3. [사용법](#사용법)
-4. [Release Notes](#release-notes)
-5. [License](#license)
+2. [환경변수 설정 (.env)](#환경변수-설정-env)
+3. [아키텍처](#아키텍처)
+4. [사용법](#사용법)
+5. [Release Notes](#release-notes)
+6. [License](#license)
 
 ---
 
@@ -17,6 +18,65 @@ Created by alshin
 
 ```bash
 pip install finestock
+```
+
+---
+
+## 환경변수 설정 (.env)
+
+브로커 앱키/시크릿/계좌번호/액세스 토큰은 코드에 직접 하드코딩하지 말고 환경변수로 주입한다. 저장소 루트의 `.env.example`을 복사해 `.env`로 만들고 실제 값을 채워 넣는다.
+
+```bash
+cp .env.example .env
+```
+
+`.env` 파일 내용:
+
+```
+APP_KEY=YOUR_APP_KEY
+APP_SECRET=YOUR_APP_SECRET
+ACCOUNT_NUM=YOUR_ACCOUNT_NUM
+ACCOUNT_NUM_SUB=01
+ACCESS_TOKEN=
+```
+
+`.env`는 `.gitignore`에 의해 커밋되지 않는다(`.env.example`만 커밋 대상).
+
+### 값 로드 방법
+
+`example.py`, `example_async.py`는 모두 `os.environ.get("APP_KEY", ...)` 형태로 값을 읽는다. `.env` 파일 자체는 셸이나 파이썬이 자동으로 읽어주지 않으므로 아래 두 방법 중 하나가 필요하다.
+
+**1) python-dotenv로 자동 로드 (권장)**
+
+```bash
+pip install python-dotenv
+```
+
+예제 스크립트는 `python-dotenv`가 설치되어 있으면 시작 시 자동으로 `.env`를 읽어 `os.environ`에 채워 넣는다(설치돼 있지 않으면 조용히 건너뛴다). 직접 스크립트를 작성할 때도 아래처럼 최상단에서 호출하면 된다.
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+import os
+app_key = os.environ.get("APP_KEY")
+app_secret = os.environ.get("APP_SECRET")
+```
+
+**2) 셸에서 직접 환경변수 설정**
+
+```powershell
+# PowerShell
+$env:APP_KEY = "YOUR_APP_KEY"
+$env:APP_SECRET = "YOUR_APP_SECRET"
+python example.py
+```
+
+```bash
+# bash
+export APP_KEY="YOUR_APP_KEY"
+export APP_SECRET="YOUR_APP_SECRET"
+python example.py
 ```
 
 ---
@@ -77,6 +137,7 @@ if isinstance(api, RealtimeProvider):
     
     # 3. 데이터 수신 (비동기 루프 실행 필요)
     # ... (자세한 예제는 example_v1.py 참조)
+```
 
 ### 3. 타입 힌팅 활용 (Type Hinting)
 
@@ -93,6 +154,5 @@ market_api: MarketDataProvider = full_api
 
 # market_api. (여기서 get_ohlcv 등만 보임)
 df = market_api.get_ohlcv("005930")
-```
 ```
 

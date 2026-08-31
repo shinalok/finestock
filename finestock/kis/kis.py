@@ -20,8 +20,8 @@ class Kis(API):
             "appkey": self.app_key,
             "appsecret": self.app_secret
         }
-        data = json.dumps(data)
-        return super().oauth(data=data)
+        header = {"Content-Type": "application/json; charset=UTF-8"}
+        return super().oauth(header=header, data=json.dumps(data))
 
     def approval(self):
         header = self.headers.copy()
@@ -67,6 +67,11 @@ class Kis(API):
 
         return ohlcvs
 
+    def get_ohlcv_min(self, code, todate="", exchgubun="K", cts_date="", cts_time="", tr_cont_key=""):
+        # TODO: KIS 분봉 조회 TR(FHKST03010200) 미연동. 우선 인터페이스 계약만 충족.
+        print("Kis get_ohlcv_min not supported yet")
+        return []
+
     def get_index(self, code, frdate=datetime.now().strftime('%Y%m%d'), todate=datetime.now().strftime('%Y%m%d')):
         header = self.headers.copy()
         header["tr_id"] = "FHKUP03500100"
@@ -87,6 +92,11 @@ class Kis(API):
                 ohlcvs.append(finestock.Price(price["stck_bsop_date"], code, price["bstp_nmix_prpr"], price["bstp_nmix_oprc"], price["bstp_nmix_hgpr"], price["bstp_nmix_lwpr"], price["bstp_nmix_prpr"], price["acml_vol"], price["acml_tr_pbmn"]))
 
         return ohlcvs
+
+    def get_index_min(self, code, todate="", cts_date=" ", cts_time="", tr_cont_key=""):
+        # TODO: KIS 지수 분봉 조회 TR 미연동. 우선 인터페이스 계약만 충족.
+        print("Kis get_index_min not supported yet")
+        return []
 
     def get_orderbook(self, code):
         header = self.headers.copy()
@@ -146,6 +156,10 @@ class Kis(API):
         return finestock.Account(self.account_num, self.account_num_sub, int(acc["dnca_tot_amt"]), int(acc["nxdy_excc_amt"]),
                        int(acc["prvs_rcdl_excc_amt"]), holds)
 
+    def get_holds(self):
+        balance = self.get_balance()
+        return balance.hold if balance else []
+
     def do_order(self, code, buy_flag, price, qty):
         url = f"{self.DOMAIN}/{self.ORDER}"
         header = self.headers.copy()
@@ -179,6 +193,11 @@ class Kis(API):
 
     def get_index_list(self):
         print("Kis not supported")
+
+    def get_stock_list(self, mrkt_tp="0"):
+        # TODO: KIS 종목 리스트 조회 TR 미연동. 우선 인터페이스 계약만 충족.
+        print("Kis get_stock_list not supported yet")
+        return []
 
     async def connect(self):
         self.approval()

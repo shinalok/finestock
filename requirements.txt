@@ -1,0 +1,12 @@
+# finestock 런타임 의존성
+# (setup.py의 install_requires와 동일하게 유지할 것.
+#  단, asyncio는 Python 3.4+ 표준 라이브러리이므로 여기에 넣지 않는다.)
+requests
+websockets
+loguru
+
+# 선택 의존성: 예제 스크립트(example.py, example_async.py 등)에서
+# .env 파일을 자동으로 로드하고 싶을 때만 설치하면 된다.
+# pip install -r requirements.txt -r requirements-optional.txt 형태로 분리해도 되고,
+# 필요 없으면 아래 줄을 지워도 example 스크립트는 정상 동작한다(ImportError를 무시함).
+python-dotenv
