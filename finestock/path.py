@@ -75,6 +75,28 @@ _KIWOOM_V_ = {
     "DOMAIN_WS": "wss://mockapi.kiwoom.com:10000/api/dostk/websocket",
 }
 
+_NH_ = {
+    "DOMAIN": "https://api.nhplug.com:8443",
+    "DOMAIN_WS": "wss://api.nhplug.com:7070",
+    # 접근토큰발급(oauth2/token)은 모의투자 미제공 — 항상 운영 도메인에서만 발급.
+    # NhV(모의투자)에서도 이 값은 바뀌지 않는다.
+    "OAUTH_DOMAIN": "https://api.nhplug.com:8443",
+    "OAUTH": "oauth2/token",
+    "ACCOUNT_LIST": "n2/acctinfo",
+    "ORDER_CASH_BUY": "krstock/order/v1/cashBuy",
+    "ORDER_CASH_SELL": "krstock/order/v1/cashSell",
+    "ORDER_CANCEL": "krstock/order/v1/cancel",
+    "ORDER_MODIFY": "krstock/order/v1/modify",
+    "BALANCE": "krstock/inquiry/v1/balance",
+    "PRICE": "krstock/quote/v1/currentPrice",
+    "CHART": "krstock/quote/v1/period",
+}
+_NH_V_ = {
+    **_NH_,
+    "DOMAIN": "https://moapi.nhplug.com:8443",
+    "DOMAIN_WS": "wss://moapi.nhplug.com:17070",
+}
+
 _API_PATH_ = {
     "EBest": {**_EBEST_},
     "LS": {**_LS_},
@@ -83,4 +105,6 @@ _API_PATH_ = {
     "KisV": {**_KIS_V_},
     "Kiwoom": {**_KIWOOM_},
     "KiwoomV": {**_KIWOOM_V_},
+    "Nh": {**_NH_},
+    "NhV": {**_NH_V_},
 }
