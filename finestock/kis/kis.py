@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 import json
 import websockets
+from loguru import logger
 import finestock
 from finestock.comm import API
 
@@ -60,11 +61,16 @@ class Kis(API):
         res = self._json(response)
 
         ohlcvs = []
-        if res["rt_cd"] == "0":
+        if res.get("rt_cd") == "0":
             data = res["output2"]
             print(data)
             for price in data:
                 ohlcvs.append(finestock.Price(price["stck_bsop_date"], code, price["stck_clpr"], price["stck_oprc"], price["stck_hgpr"], price["stck_lwpr"], price["stck_clpr"], price["acml_vol"], price["acml_tr_pbmn"]))
+        else:
+            # rt_cd != "0"인 원인은 다양하다(레이트리밋 EGW00201, 잘못된 종목코드, 토큰
+            # 만료 등) — 예전엔 여기서 조용히 빈 리스트를 반환해 "데이터가 없다"와
+            # "조회가 실패했다"를 호출자가 구분할 수 없었다. 최소한 로그로는 남긴다.
+            logger.error(f"[Kis.get_ohlcv] 시세 조회 실패: {res}")
 
         return ohlcvs
 
@@ -90,10 +96,12 @@ class Kis(API):
         response = self._request("GET", f"{self.DOMAIN}/{self.INDEX}", headers=header, params=param, log_tag="Kis.get_index")
         res = self._json(response)
         ohlcvs = []
-        if res["rt_cd"] == "0":
+        if res.get("rt_cd") == "0":
             data = res["output2"]
             for price in data:
                 ohlcvs.append(finestock.Price(price["stck_bsop_date"], code, price["bstp_nmix_prpr"], price["bstp_nmix_oprc"], price["bstp_nmix_hgpr"], price["bstp_nmix_lwpr"], price["bstp_nmix_prpr"], price["acml_vol"], price["acml_tr_pbmn"]))
+        else:
+            logger.error(f"[Kis.get_index] 지수 조회 실패: {res}")
 
         return ohlcvs
 
@@ -111,6 +119,10 @@ class Kis(API):
         }
         response = self._request("GET", f"{self.DOMAIN}/{self.ORDERBOOK}", headers=header, params=param, log_tag="Kis.get_orderbook")
         res = self._json(response)
+
+        if res.get('rt_cd') != "0":
+            logger.error(f"[Kis.get_orderbook] 호가 조회 실패: {res}")
+            return None
 
         output1 = res['output1']
         sells = []
@@ -148,6 +160,10 @@ class Kis(API):
         res = self._json(response)
         print(res)
 
+        if res.get('rt_cd') != "0":
+            logger.error(f"[Kis.get_balance] 잔고 조회 실패: {res}")
+            return None
+
         hold = res["output1"]
         acc = res["output2"][0]
 
@@ -183,10 +199,13 @@ class Kis(API):
         res = self._json(response)
         print(res)
 
-        if res['rt_cd'] == "0":
+        if res.get('rt_cd') == "0":
             data = res['output']
             return finestock.Order(code, '', price, qty, buy_flag,
                          data['ODNO'], data['ORD_TMD'])
+
+        logger.error(f"[Kis.do_order] 주문 실패: {res}")
+        return None
 
 
     def get_order_status(self, code):

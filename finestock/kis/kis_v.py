@@ -1,4 +1,5 @@
 import json
+from loguru import logger
 import finestock
 from finestock.kis import Kis
 
@@ -25,10 +26,13 @@ class KisV(Kis):
             "CTX_AREA_FK100": "",  # 연속조회검색조건100
             "CTX_AREA_NK100": ""  # 연속조회키100
         }
-        print(header)
         response = self._request("GET", f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param, log_tag="KisV.get_balance")
         res = self._json(response)
         print(res)
+
+        if res.get('rt_cd') != "0":
+            logger.error(f"[KisV.get_balance] 잔고 조회 실패: {res}")
+            return None
 
         hold = res["output1"]
         acc = res["output2"][0]
@@ -61,10 +65,13 @@ class KisV(Kis):
         res = self._json(response)
         print(res)
 
-        if res['rt_cd'] == "0":
+        if res.get('rt_cd') == "0":
             data = res['output']
             return finestock.Order(code, '', price, qty, buy_flag,
                          data['ODNO'], data['ORD_TMD'])
+
+        logger.error(f"[KisV.do_order] 주문 실패: {res}")
+        return None
 
     def get_order_status(self, code):
         pass
