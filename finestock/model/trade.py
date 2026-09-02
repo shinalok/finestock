@@ -48,6 +48,9 @@ class Order:
     order_time: str = None
     id: str = None
     account_num: str = None
+    # KIS 정정/취소(order-rvsecncl) 호출 시 필요한 "한국거래소전송주문조직번호".
+    # do_order() 응답에 함께 내려오며, 다른 브로커는 이 개념이 없어 None으로 둔다.
+    krx_fwdg_ord_orgno: str = None
 
 @dataclass(frozen=True)
 class Trade:

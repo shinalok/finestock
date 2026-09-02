@@ -41,6 +41,8 @@ _KIS_ = {
     "CHART": "uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
     "ACCOUNT": 	"uapi/domestic-stock/v1/trading/inquire-balance",
     "ORDER": "uapi/domestic-stock/v1/trading/order-cash",
+    "ORDER_RVSECNCL": "uapi/domestic-stock/v1/trading/order-rvsecncl",  # 주식주문(정정취소)
+    "INQUIRE_PSBL_RVSECNCL": "uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",  # 주식정정취소가능주문조회
     "INDEX": "uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice",
     "ORDERBOOK": "uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn",
 }

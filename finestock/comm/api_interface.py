@@ -50,6 +50,15 @@ class TradingProvider(ABC):
     def do_order_cancel(self, order_num: str, code: str, qty: int) -> Any:
         raise NotImplementedError
 
+    @abstractmethod
+    def do_order_modify(self, order_num: str, code: str, price: int, qty: int) -> Any:
+        """
+        기존 미체결 주문의 가격/수량을 정정한다. 브로커가 아직 이 기능을 지원하지
+        않으면 예외 대신 None을 반환해 do_order_cancel과 실패 처리 방식을
+        통일한다(구현부는 stub으로 남겨도 된다).
+        """
+        raise NotImplementedError
+
 class RealtimeProvider(ABC):
     @abstractmethod
     def set_data_queue(self, queue: Any) -> None:

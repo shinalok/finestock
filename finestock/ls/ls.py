@@ -575,6 +575,11 @@ class LS(API):
             return finestock.Order(data1['IsuNo'], data2['IsuNm'], 0, 0, finestock.ORDER_FLAG.VIEW,
                                    data1['OrgOrdNo'], data2['OrdTime'])
 
+    def do_order_modify(self, order_num, code, price, qty):
+        # TODO: LS 주식정정주문 TR 미연동. 우선 인터페이스 계약만 충족.
+        print("LS do_order_modify not supported yet")
+        return None
+
     async def connect(self, callback=None):
         print(f"[LS API] connecting...")
         #self.ws = await websockets.connect(self.DOMAIN_WS, ssl=ssl_context)

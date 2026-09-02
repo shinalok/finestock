@@ -226,6 +226,13 @@ class Nh(API):
         data = res.get('Output_0', {})
         return finestock.Order(code, '', 0, qty, finestock.ORDER_FLAG.VIEW, str(data.get('mkt_orr_no')))
 
+    def do_order_modify(self, order_num, code, price, qty):
+        # TODO: NH 정정주문 TR 미연동. self.ORDER_MODIFY(path.py) 엔드포인트는
+        # 이미 정의돼 있으나 요청 바디 스펙을 아직 검증하지 못해 우선 인터페이스
+        # 계약만 충족한다.
+        print("Nh do_order_modify not supported yet")
+        return None
+
     # ------------------------------------------------------------------
     # 계좌
     # ------------------------------------------------------------------

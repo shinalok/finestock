@@ -746,6 +746,11 @@ class Kiwoom(API):
              logger.error(f"[Kiwoom] HTTP Error: {response.status_code} {response.text}")
         return None
 
+    def do_order_modify(self, order_num, code, price, qty):
+        # TODO: Kiwoom 주식 정정주문 TR 미연동. 우선 인터페이스 계약만 충족.
+        print("Kiwoom do_order_modify not supported yet")
+        return None
+
     def get_balance(self):
         url = f"{self.DOMAIN}/api/dostk/acnt"
 

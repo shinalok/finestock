@@ -209,10 +209,16 @@ class Kis(API):
         balance = self.get_balance()
         return balance.hold if balance else []
 
-    def do_order(self, code, buy_flag, price, qty):
+    def do_order(self, code, buy_flag, price, qty, excg_id_dvsn_cd="KRX"):
+        # 2025-03 넥스트레이드(NXT) 도입 이후 KIS 주식주문(현금) TR이 거래소 라우팅을
+        # 지원하는 TTTC0012U(매수)/TTTC0011U(매도)로 바뀌었다(구 TTTC0802U/TTTC0801U는
+        # 더 이상 공식 예제에 등장하지 않는다 — koreainvestment/open-trading-api
+        # examples_llm/domestic_stock/order_cash/order_cash.py 기준). excg_id_dvsn_cd로
+        # 어느 거래소로 보낼지 고른다("KRX"/"NXT"/"SOR" — SOR은 스마트오더라우팅으로
+        # 자동으로 유리한 거래소를 골라준다). 기본값은 기존 동작과 동일한 KRX.
         url = f"{self.DOMAIN}/{self.ORDER}"
         header = self.headers.copy()
-        header["tr_id"] = "TTTC0802U" if buy_flag == finestock.ORDER_FLAG.BUY else "TTTC0801U" #[실전]매수: TTTC0802U, 매도: TTTC0801U
+        header["tr_id"] = "TTTC0012U" if buy_flag == finestock.ORDER_FLAG.BUY else "TTTC0011U" #[실전]매수: TTTC0012U, 매도: TTTC0011U
         dvsn = "01" if price == 0 else "00" #00: 지정가, 01:시장가
 
         param = {
@@ -220,8 +226,11 @@ class Kis(API):
             "ACNT_PRDT_CD": self.account_num_sub,
             "PDNO": code,  # 종목코드
             "ORD_DVSN": dvsn,  # 주문구분(00: 지정가, 01:시장가)
-            "ORD_QTY": str(qty),  # 주문수량(01: 대출일별, 02: 종목별)
-            "ORD_UNPR": str(price)  # 주문단가(01: 기본값)
+            "ORD_QTY": str(qty),  # 주문수량
+            "ORD_UNPR": str(price),  # 주문단가
+            "EXCG_ID_DVSN_CD": excg_id_dvsn_cd,  # 거래소ID구분코드(KRX/NXT/SOR)
+            "SLL_TYPE": "",  # 매도유형(매도 주문에서만 쓰임 — 01/02/05)
+            "CNDT_PRIC": ""  # 조건가격(스탑지정가 등에서만 쓰임)
         }
 
         res = self._throttled_request("POST", url, headers=header, data=json.dumps(param), log_tag="Kis.do_order")
@@ -229,18 +238,132 @@ class Kis(API):
 
         if res.get('rt_cd') == "0":
             data = res['output']
-            return finestock.Order(code, '', price, qty, buy_flag,
-                         data['ODNO'], data['ORD_TMD'])
+            return finestock.Order(code, '', price, qty, buy_flag, data['ODNO'], data['ORD_TMD'],
+                                   krx_fwdg_ord_orgno=data.get('KRX_FWDG_ORD_ORGNO'))
 
         logger.error(f"[Kis.do_order] 주문 실패: {res}")
         return None
 
+    def get_order_status(self, code, tr_id="TTTC0084R"):
+        """
+        정정취소 가능한(=아직 미체결/일부체결로 남아있는) 주문을 조회한다 —
+        주식정정취소가능주문조회(TTTC0084R). koreainvestment/open-trading-api
+        examples_llm/domestic_stock/inquire_psbl_rvsecncl 기준으로 검증했고,
+        정정취소(order-rvsecncl) 호출 전에 이 TR로 먼저 조회하라는 것이 KIS 공식
+        가이드다. 원본 예제엔 env_dv(실전/모의) 분기가 아예 없고 tr_id가
+        "TTTC0084R" 하나로 고정돼 있다 — 다른 KIS TR처럼 TTTC<->VTTC 접두어가 항상
+        쌍으로 존재한다고 넘겨짚지 말 것.
 
-    def get_order_status(self, code):
-        pass
+        실제로 모의투자(openapivts) 서버에 TTTC0084R/VTTC0084R 둘 다 호출해보면
+        각각 msg_cd=EGW02006("모의투자 TR 이 아닙니다")/OPSQ0002("없는 서비스
+        코드 입니다")로 거부된다 — 즉 이 TR 자체가 KIS 모의투자 환경에서는 제공되지
+        않는 것으로 보인다(자세한 내용은 kis_v.py의 관련 주석 참고).
+        실전(Kis, TTTC0084R)에서 정상 동작하는지는 실전 계좌로 아직 검증하지 못했다.
 
-    def do_order_cancel(self, order_num, code, qty):
-        pass
+        code가 주어지면 그 종목(pdno)만 걸러서 반환하고, None/빈 문자열이면 전체
+        보유 미체결 주문을 반환한다.
+
+        반환된 Order.krx_fwdg_ord_orgno는 응답의 ord_gno_brno(주문채번지점번호)를
+        그대로 담은 값이다 — do_order()가 돌려주는 KRX_FWDG_ORD_ORGNO(한국거래소전송
+        주문조직번호)와 같은 값일 것으로 보이지만(두 TR 모두 "이 주문을 낸 조직/지점
+        번호"라는 같은 개념을 가리킴), KIS 공식 문서로 완전히 1:1 확인하지는 못했다 —
+        do_order_cancel/do_order_modify에 넘기기 전에 한 번 검증해보는 걸 권장한다.
+
+        ※ 연속조회(최대 50건/페이지, CTX_AREA_FK100/NK100)는 아직 구현하지 않았다
+        — 미체결 주문이 50건을 넘으면 뒤쪽 페이지는 조회되지 않는다.
+        """
+        header = self.headers.copy()
+        header["tr_id"] = tr_id
+        param = {
+            "CANO": self.account_num,
+            "ACNT_PRDT_CD": self.account_num_sub,
+            # 조회구분1/2의 정확한 코드 의미는 공식 문서로 확인 못 했다 — KIS 공식
+            # 체크 예제(chk_inquire_psbl_rvsecncl.py)가 실제로 쓰는 값을 그대로 썼다.
+            "INQR_DVSN_1": "1",
+            "INQR_DVSN_2": "0",
+            "CTX_AREA_FK100": "",
+            "CTX_AREA_NK100": ""
+        }
+        res = self._throttled_request("GET", f"{self.DOMAIN}/{self.INQUIRE_PSBL_RVSECNCL}",
+                                       headers=header, params=param, log_tag="Kis.get_order_status")
+
+        if res.get('rt_cd') != "0":
+            logger.error(f"[Kis.get_order_status] 정정취소가능주문 조회 실패: {res}")
+            return []
+
+        orders = []
+        for o in res.get('output', []):
+            if code and o.get('pdno') != code:
+                continue
+            sll_buy = o.get('sll_buy_dvsn_cd')  # 00:전체 01:매도 02:매수
+            if sll_buy == "01":
+                order_flag = finestock.ORDER_FLAG.SELL
+            elif sll_buy == "02":
+                order_flag = finestock.ORDER_FLAG.BUY
+            else:
+                order_flag = finestock.ORDER_FLAG.VIEW
+            orders.append(finestock.Order(
+                o.get('pdno', code), o.get('prdt_name', ''), int(o.get('ord_unpr') or 0),
+                int(o.get('ord_qty') or 0), order_flag, o.get('odno', ''), o.get('ord_tmd'),
+                krx_fwdg_ord_orgno=o.get('ord_gno_brno')))
+        return orders
+
+    def _order_rvsecncl(self, tr_id, rvse_cncl_dvsn_cd, order_num, code, price, qty,
+                         krx_fwdg_ord_orgno, ord_dvsn, qty_all_ord_yn, excg_id_dvsn_cd):
+        """
+        주식주문(정정취소) 공통 호출. KIS는 정정(01)과 취소(02)를 같은 TR/엔드포인트로
+        처리한다 — koreainvestment/open-trading-api examples_llm/domestic_stock/
+        order_rvsecncl/order_rvsecncl.py 기준. do_order_cancel/do_order_modify가
+        rvse_cncl_dvsn_cd만 다르게 이 메서드를 호출한다.
+
+        krx_fwdg_ord_orgno는 do_order()가 반환한 Order.krx_fwdg_ord_orgno 값을 그대로
+        넘겨야 한다 — KIS가 브로커/지점 라우팅에 쓰는 값이라 임의로 채울 수 없다.
+        """
+        if not krx_fwdg_ord_orgno:
+            logger.error(f"[{self.api_type}._order_rvsecncl] krx_fwdg_ord_orgno가 없습니다 — "
+                         f"do_order()가 반환한 Order.krx_fwdg_ord_orgno를 넘겨주세요.")
+            return None
+
+        url = f"{self.DOMAIN}/{self.ORDER_RVSECNCL}"
+        header = self.headers.copy()
+        header["tr_id"] = tr_id
+        param = {
+            "CANO": self.account_num,
+            "ACNT_PRDT_CD": self.account_num_sub,
+            "KRX_FWDG_ORD_ORGNO": krx_fwdg_ord_orgno,  # 한국거래소전송주문조직번호(원주문 응답값)
+            "ORGN_ODNO": order_num,  # 원주문번호
+            "ORD_DVSN": ord_dvsn,  # 주문구분(00: 지정가, 01:시장가)
+            "RVSE_CNCL_DVSN_CD": rvse_cncl_dvsn_cd,  # 정정취소구분코드(01: 정정, 02: 취소)
+            "ORD_QTY": str(qty),  # 주문수량(잔량 전부면 QTY_ALL_ORD_YN=Y이므로 무시됨)
+            "ORD_UNPR": str(price),  # 주문단가(취소면 의미 없음)
+            "QTY_ALL_ORD_YN": qty_all_ord_yn,  # 잔량전부주문여부(Y: 전량, N: 일부)
+            "EXCG_ID_DVSN_CD": excg_id_dvsn_cd  # 거래소ID구분코드(KRX/NXT/SOR)
+        }
+
+        res = self._throttled_request("POST", url, headers=header, data=json.dumps(param),
+                                       log_tag=f"{self.api_type}._order_rvsecncl")
+        print(res)
+
+        if res.get('rt_cd') == "0":
+            data = res['output']
+            return finestock.Order(code, '', price, qty, finestock.ORDER_FLAG.VIEW, data['ODNO'], data['ORD_TMD'],
+                                   krx_fwdg_ord_orgno=data.get('KRX_FWDG_ORD_ORGNO', krx_fwdg_ord_orgno))
+
+        logger.error(f"[{self.api_type}._order_rvsecncl] 정정/취소 실패: {res}")
+        return None
+
+    def do_order_cancel(self, order_num, code, qty, krx_fwdg_ord_orgno="",
+                        ord_dvsn="00", qty_all_ord_yn="Y", excg_id_dvsn_cd="KRX"):
+        # qty_all_ord_yn="Y"(기본값)이면 잔량 전부를 취소하므로 qty는 무시된다.
+        # 일부만 취소하려면 qty_all_ord_yn="N"과 함께 실제 취소 수량을 qty로 넘긴다.
+        return self._order_rvsecncl("TTTC0013U", "02", order_num, code, 0, qty,
+                                    krx_fwdg_ord_orgno, ord_dvsn, qty_all_ord_yn, excg_id_dvsn_cd)
+
+    def do_order_modify(self, order_num, code, price, qty, krx_fwdg_ord_orgno="",
+                        ord_dvsn="00", qty_all_ord_yn="Y", excg_id_dvsn_cd="KRX"):
+        # 정정 가능 수량은 원주문 수량을 넘을 수 없다(원주문의 미체결 수량 이하만 가능).
+        return self._order_rvsecncl("TTTC0013U", "01", order_num, code, price, qty,
+                                    krx_fwdg_ord_orgno, ord_dvsn, qty_all_ord_yn, excg_id_dvsn_cd)
 
     def get_index_list(self):
         print("Kis not supported")
