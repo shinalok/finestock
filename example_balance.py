@@ -14,6 +14,7 @@ from loguru import logger
 
 import finestock
 from finestock import APIProvider
+from finestock.comm.api_interface import AccountProvider
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -73,9 +74,14 @@ def main():
     finestock.print_version_info()
     api = login(PROVIDER)
 
+    # api는 여러 인터페이스(Authentication/MarketData/Trading/...)를 한 번에 구현한
+    # 파사드 객체다. 잔고/보유종목 조회만 쓸 거라면 AccountProvider로 좁혀서 써도 된다
+    # (런타임 제약은 아니고 IDE 자동완성을 위한 타입 힌트용 관례).
+    account_api: AccountProvider = api
+
     print("\n[get_balance] 계좌 잔고 조회...")
     try:
-        balance = api.get_balance()
+        balance = account_api.get_balance()
     except finestock.FinestockNetworkError as e:
         print(f"[네트워크 오류] 잔고 조회 실패: {e}")
         sys.exit(1)

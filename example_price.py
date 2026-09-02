@@ -18,6 +18,7 @@ from loguru import logger
 
 import finestock
 from finestock import APIProvider
+from finestock.comm.api_interface import MarketDataProvider
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -85,9 +86,14 @@ def main():
     api = login(PROVIDER)
     time.sleep(RATE_LIMIT_DELAY)  # oauth() 직후 바로 조회하면 같은 초에 걸릴 수 있어 한 텀 쉰다.
 
+    # api는 여러 인터페이스(Authentication/MarketData/Trading/...)를 한 번에 구현한
+    # 파사드 객체다. 시세 조회만 쓸 거라면 MarketDataProvider로 좁혀서 써도 된다
+    # (런타임 제약은 아니고 IDE 자동완성을 위한 타입 힌트용 관례).
+    market_api: MarketDataProvider = api
+
     # 1) get_price: 당일 시세 하나
     print(f"\n[get_price] 종목 {code} 당일 시세 조회...")
-    price = api.get_price(code)
+    price = market_api.get_price(code)
     print_price("get_price", price)
 
     # 2) get_ohlcv: frdate/todate를 생략하면 오늘 날짜 기준으로 조회된다.
@@ -95,7 +101,7 @@ def main():
     today = datetime.datetime.now().strftime("%Y%m%d")
     for i in (1, 2):
         time.sleep(RATE_LIMIT_DELAY)
-        ohlcvs = api.get_ohlcv(code)
+        ohlcvs = market_api.get_ohlcv(code)
         got = ohlcvs[0].workday if ohlcvs else None
         print(f"  호출 {i}: 오늘={today}, 조회된 workday={got}, "
               f"레코드 수={len(ohlcvs) if ohlcvs else 0}")
@@ -105,7 +111,7 @@ def main():
     todate = today
     print(f"\n[get_ohlcv] 종목 {code} 기간 조회 ({frdate} ~ {todate})...")
     time.sleep(RATE_LIMIT_DELAY)
-    ohlcvs = api.get_ohlcv(code, frdate=frdate, todate=todate)
+    ohlcvs = market_api.get_ohlcv(code, frdate=frdate, todate=todate)
     print(f"  레코드 수: {len(ohlcvs) if ohlcvs else 0}")
     for p in (ohlcvs or [])[:5]:
         print_price("  ", p)
