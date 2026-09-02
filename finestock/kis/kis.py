@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 import json
+import time
 import websockets
 from loguru import logger
 import finestock
@@ -8,11 +9,43 @@ from finestock.comm import API
 
 
 class Kis(API):
+    # 초당 거래건수 제한(EGW00201) 대응. 요청 사이 최소 간격을 둬서 미리 제한에
+    # 걸리지 않게 하고(쓰로틀링), 그래도 EGW00201 응답을 받으면 짧게 쉬었다가
+    # 재시도한다. 모의투자(KisV)는 이 제한이 더 빡빡해서 특히 도움이 된다.
+    _MIN_REQUEST_INTERVAL = 0.3  # 초
+    _RATE_LIMIT_MSG_CD = "EGW00201"
+    _MAX_RETRIES = 3
+
     def __init__(self):
         super().__init__()
         self.approval_key = None
         self.headers_rt = {"custtype": "P", "tr_type": "1", "content-type": "utf-8"}
+        self._last_request_time = 0.0
         print("create Kis Components")
+
+    def _throttle(self):
+        elapsed = time.monotonic() - self._last_request_time
+        wait = self._MIN_REQUEST_INTERVAL - elapsed
+        if wait > 0:
+            time.sleep(wait)
+        self._last_request_time = time.monotonic()
+
+    def _throttled_request(self, method, url, headers=None, params=None, data=None, log_tag=None):
+        """
+        KIS TR 공통 요청 헬퍼. self._request + self._json에 쓰로틀링/재시도를 얹은
+        버전. 반환값은 self._json(response)와 동일(파싱된 JSON dict) — 호출부의
+        기존 rt_cd 체크 로직은 그대로 둔다.
+        """
+        res = None
+        for attempt in range(self._MAX_RETRIES + 1):
+            self._throttle()
+            response = self._request(method, url, headers=headers, params=params, data=data, log_tag=log_tag)
+            res = self._json(response)
+            if res.get("msg_cd") != self._RATE_LIMIT_MSG_CD:
+                return res
+            logger.warning(f"[{log_tag or self.api_type}] 초당 거래건수 제한({self._RATE_LIMIT_MSG_CD}) "
+                            f"응답 ({attempt + 1}/{self._MAX_RETRIES + 1}회)")
+        return res
 
     def oauth(self, header=None, data=None):
         data = {
@@ -57,8 +90,7 @@ class Kis(API):
             "fid_period_div_code": "D", #D:일봉, W:주봉, M:월봉, Y:년봉,
             "fid_org_adj_prc": "0" #0:수정주가, 1: 원주가
         }
-        response = self._request("GET", f"{self.DOMAIN}/{self.CHART}", headers=header, params=param, log_tag="Kis.get_ohlcv")
-        res = self._json(response)
+        res = self._throttled_request("GET", f"{self.DOMAIN}/{self.CHART}", headers=header, params=param, log_tag="Kis.get_ohlcv")
 
         ohlcvs = []
         if res.get("rt_cd") == "0":
@@ -93,8 +125,7 @@ class Kis(API):
             "fid_period_div_code": "D", #D:일봉, W:주봉, M:월봉, Y:년봉,
             "fid_org_adj_prc": "0" #0:수정주가, 1: 원주가
         }
-        response = self._request("GET", f"{self.DOMAIN}/{self.INDEX}", headers=header, params=param, log_tag="Kis.get_index")
-        res = self._json(response)
+        res = self._throttled_request("GET", f"{self.DOMAIN}/{self.INDEX}", headers=header, params=param, log_tag="Kis.get_index")
         ohlcvs = []
         if res.get("rt_cd") == "0":
             data = res["output2"]
@@ -117,8 +148,7 @@ class Kis(API):
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": code
         }
-        response = self._request("GET", f"{self.DOMAIN}/{self.ORDERBOOK}", headers=header, params=param, log_tag="Kis.get_orderbook")
-        res = self._json(response)
+        res = self._throttled_request("GET", f"{self.DOMAIN}/{self.ORDERBOOK}", headers=header, params=param, log_tag="Kis.get_orderbook")
 
         if res.get('rt_cd') != "0":
             logger.error(f"[Kis.get_orderbook] 호가 조회 실패: {res}")
@@ -156,8 +186,7 @@ class Kis(API):
             "CTX_AREA_FK100": "",  # 연속조회검색조건100
             "CTX_AREA_NK100": ""  # 연속조회키100
         }
-        response = self._request("GET", f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param, log_tag="Kis.get_balance")
-        res = self._json(response)
+        res = self._throttled_request("GET", f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param, log_tag="Kis.get_balance")
         print(res)
 
         if res.get('rt_cd') != "0":
@@ -195,8 +224,7 @@ class Kis(API):
             "ORD_UNPR": str(price)  # 주문단가(01: 기본값)
         }
 
-        response = self._request("POST", url, headers=header, data=json.dumps(param), log_tag="Kis.do_order")
-        res = self._json(response)
+        res = self._throttled_request("POST", url, headers=header, data=json.dumps(param), log_tag="Kis.do_order")
         print(res)
 
         if res.get('rt_cd') == "0":

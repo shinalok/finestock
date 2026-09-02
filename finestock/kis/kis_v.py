@@ -26,8 +26,7 @@ class KisV(Kis):
             "CTX_AREA_FK100": "",  # 연속조회검색조건100
             "CTX_AREA_NK100": ""  # 연속조회키100
         }
-        response = self._request("GET", f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param, log_tag="KisV.get_balance")
-        res = self._json(response)
+        res = self._throttled_request("GET", f"{self.DOMAIN}/{self.ACCOUNT}", headers=header, params=param, log_tag="KisV.get_balance")
         print(res)
 
         if res.get('rt_cd') != "0":
@@ -61,8 +60,7 @@ class KisV(Kis):
             "ORD_UNPR": str(price)  # 주문단가(01: 기본값)
         }
 
-        response = self._request("POST", url, headers=header, data=json.dumps(param), log_tag="KisV.do_order")
-        res = self._json(response)
+        res = self._throttled_request("POST", url, headers=header, data=json.dumps(param), log_tag="KisV.do_order")
         print(res)
 
         if res.get('rt_cd') == "0":

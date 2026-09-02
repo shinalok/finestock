@@ -265,7 +265,7 @@ class Nh(API):
         next_cts = resp_headers.get('cts')
         next_cts_flag = resp_headers.get('cts_flag')
         if next_cts_flag == "Y" and next_cts:
-            time.sleep(0.5)
+            time.sleep(0.3)
             next_account = self.get_balance(next_cts, "Y")
             if next_account is None:
                 return None

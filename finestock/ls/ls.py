@@ -75,7 +75,7 @@ class LS(API):
                 _tr_cont_key = response.headers['tr_cont_key']
                 cts_date = res['t8410OutBlock']['cts_date']
                 if cts_date != "":
-                    time.sleep(1)
+                    time.sleep(0.3)
                     pre_ohlcvs = self.get_ohlcv(code, frdate, todate, cts_date, str(_tr_cont_key))
                     return pre_ohlcvs + ohlcvs
             return ohlcvs
@@ -90,7 +90,7 @@ class LS(API):
         ohlcvs = []
         for _codes in codes_group:
             ohlcvs += self._get_multiple_ohlcv(_codes)
-            time.sleep(0.5)
+            time.sleep(0.3)
 
         return ohlcvs
 
@@ -161,7 +161,7 @@ class LS(API):
                 cts_date = res['t8452OutBlock']['cts_date']
                 cts_time = res['t8452OutBlock']['cts_time']
                 if cts_date != "":
-                    time.sleep(1)
+                    time.sleep(0.3)
                     pre_ohlcvs = self.get_ohlcv_min(code, todate, exchgubun, cts_date, cts_time, str(_tr_cont_key))
                     return pre_ohlcvs + ohlcvs
             return ohlcvs
@@ -200,7 +200,7 @@ class LS(API):
                 _tr_cont_key = response.headers['tr_cont_key']
                 cts_date = res['t8419OutBlock']['cts_date']
                 if cts_date != "":
-                    time.sleep(1)
+                    time.sleep(0.3)
                     pre_ohlcvs = self.get_index(code, frdate, todate, cts_date, str(_tr_cont_key))
                     return pre_ohlcvs + ohlcvs
 
@@ -245,7 +245,7 @@ class LS(API):
                 cts_date = res['t8418OutBlock']['cts_date']
                 cts_time = res['t8418OutBlock']['cts_time']
                 if cts_date != "":
-                    time.sleep(1)
+                    time.sleep(0.3)
                     pre_ohlcvs = self.get_index(code, todate, cts_date, cts_time, str(_tr_cont_key))
                     return pre_ohlcvs + ohlcvs
 

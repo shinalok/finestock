@@ -35,7 +35,7 @@ CODE = "005930"  # 삼성전자
 
 # KIS(모의투자)는 초당 거래건수 제한이 있어(EGW00201), 짧은 시간에 REST 호출을
 # 연달아 보내면 제한에 걸릴 수 있다. 호출 사이에 넉넉히 쉬어준다.
-RATE_LIMIT_DELAY = 1.1  # 초
+RATE_LIMIT_DELAY = 0.3  # 초
 
 
 def login(provider):
